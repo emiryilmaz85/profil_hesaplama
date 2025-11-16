@@ -236,7 +236,7 @@ def muadil_liste_10yuzde(Wx_target, Wy_target):
 # ---------------------------------------------------------
 st.set_page_config(page_title="Profil Hesaplama", layout="wide")
 
-st.title("🔧 Profil Hesaplama Sistemi — Muadil %10 Filtreli (PNG Görselli)")
+st.title("🔧 Profil Hesaplama Sistemi")
 
 
 # =========================================================
