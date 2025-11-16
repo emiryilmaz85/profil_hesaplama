@@ -140,6 +140,19 @@ def wx_wy_square(row):
 def wx_wy_bulb(row):
     return wx_wy_rect(row.get("t"), row.get("B"))
 
+def wx_wy_flatbar(b_mm, h_mm):
+    """Lama (Flat Bar) dikdörtgen kesit Wx – Wy hesabı"""
+    b = b_mm / 1000.0
+    h = h_mm / 1000.0
+
+    Ix = b * h**3 / 12.0
+    Iy = h * b**3 / 12.0
+
+    Wx = Ix / (h / 2.0)
+    Wy = Iy / (b / 2.0)
+
+    return Wx * 1e9, Wy * 1e9
+
 
 # ---------------------------------------------------------
 # TÜM PROFİLLERİN WX – WY LİSTESİ
@@ -590,6 +603,29 @@ with col1:
             st.success(f"Toplam ağırlık (yakl.): **{w:.2f} kg**")
 
             Wx_sec, Wy_sec = wx_wy_bulb(g)
+# ----------------------
+# LAMA (FLAT BAR)
+# ----------------------
+elif profil_tipi == "Lama (Flat Bar)":
+
+    st.subheader("Lama (Flat Bar)")
+
+    b_mm = st.number_input("Genişlik (b, mm):", min_value=1.0, value=50.0)
+    h_mm = st.number_input("Yükseklik (h, mm):", min_value=1.0, value=10.0)
+
+    # Kesit alanı
+    b = b_mm / 1000.0
+    h = h_mm / 1000.0
+    A_k = b * h
+
+    if st.button("Hesapla"):
+        w = agirlik_hesap(A_k, L_m, rho)
+
+        st.markdown(f"Kesit alanı: **{A_k*1e6:.2f} mm²**")
+        st.success(f"Toplam ağırlık: **{w:.2f} kg**")
+
+        # Wx – Wy hesap
+        Wx_sec, Wy_sec = wx_wy_flatbar(b_mm, h_mm)
 
 
     # -----------------------------------------------------
@@ -612,19 +648,6 @@ with col1:
             st.dataframe(muadiller, use_container_width=True)
         else:
             st.info("Bu değerler için %10 toleransta muadil profil bulunamadı.")
-
-def wx_wy_flatbar(b_mm, h_mm):
-    """Lama (Flat Bar) dikdörtgen kesit Wx – Wy hesabı"""
-    b = b_mm / 1000.0
-    h = h_mm / 1000.0
-
-    Ix = b * h**3 / 12.0
-    Iy = h * b**3 / 12.0
-
-    Wx = Ix / (h / 2.0)
-    Wy = Iy / (b / 2.0)
-
-    return Wx * 1e9, Wy * 1e9
 
 
 # ---------------------------------------------------------
