@@ -1,0 +1,1 @@
+Muadil filtre %10 entegre edilmiştir. (Demo paket)
