@@ -603,29 +603,27 @@ with col1:
             st.success(f"Toplam ağırlık (yakl.): **{w:.2f} kg**")
 
             Wx_sec, Wy_sec = wx_wy_bulb(g)
-# ----------------------
-# LAMA (FLAT BAR)
-# ----------------------
-elif profil_tipi == "Lama (Flat Bar)":
+    # ----------------------
+    # LAMA (FLAT BAR)
+    # ----------------------
+    elif profil_tipi == "Lama (Flat Bar)":
 
-    st.subheader("Lama (Flat Bar)")
+        st.subheader("Lama (Flat Bar)")
 
-    b_mm = st.number_input("Genişlik (b, mm):", min_value=1.0, value=50.0)
-    h_mm = st.number_input("Yükseklik (h, mm):", min_value=1.0, value=10.0)
+        b_mm = st.number_input("Genişlik (b, mm):", min_value=1.0, value=50.0)
+        h_mm = st.number_input("Yükseklik (h, mm):", min_value=1.0, value=10.0)
 
-    # Kesit alanı
-    b = b_mm / 1000.0
-    h = h_mm / 1000.0
-    A_k = b * h
+        b = b_mm / 1000.0
+        h = h_mm / 1000.0
+        A_k = b * h
 
-    if st.button("Hesapla"):
-        w = agirlik_hesap(A_k, L_m, rho)
+        if st.button("Hesapla"):
+            w = agirlik_hesap(A_k, L_m, rho)
 
-        st.markdown(f"Kesit alanı: **{A_k*1e6:.2f} mm²**")
-        st.success(f"Toplam ağırlık: **{w:.2f} kg**")
+            st.markdown(f"Kesit alanı: **{A_k*1e6:.2f} mm²**")
+            st.success(f"Toplam ağırlık: **{w:.2f} kg**")
 
-        # Wx – Wy hesap
-        Wx_sec, Wy_sec = wx_wy_flatbar(b_mm, h_mm)
+            Wx_sec, Wy_sec = wx_wy_flatbar(b_mm, h_mm)
 
 
     # -----------------------------------------------------
