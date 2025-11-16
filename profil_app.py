@@ -262,10 +262,9 @@ col1, col2 = st.columns([3, 1])
 # SOL SÜTUN — HESAPLAMA ALANI
 # ---------------------------------------------------------
 with col1:
-
     MALZEMELER = {"Çelik": 7.85, "Paslanmaz Çelik": 7.90, "Alüminyum": 2.70}
 
-profil_tipi = st.selectbox("Profil Tipi:", [
+    profil_tipi = st.selectbox("Profil Tipi:", [
         "Boru",
         "Kutu Profil (RHS/SHS)",
         "Köşebent (L Eşit)",
@@ -278,7 +277,8 @@ profil_tipi = st.selectbox("Profil Tipi:", [
         "Kare Dolu",
         "Hollanda Profili (Bulb Flat)",
         "Lama (Flat Bar)"
-])
+    ])
+
 
 
     malzeme = st.selectbox("Malzeme:", list(MALZEMELER.keys()))
