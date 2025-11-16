@@ -264,6 +264,7 @@ with col1:
         "Yuvarlak Dolu",
         "Kare Dolu",
         "Hollanda Profili (Bulb Flat)"
+        "Lama (Flat Bar)"
     ])
 
     malzeme = st.selectbox("Malzeme:", list(MALZEMELER.keys()))
@@ -611,6 +612,19 @@ with col1:
             st.dataframe(muadiller, use_container_width=True)
         else:
             st.info("Bu değerler için %10 toleransta muadil profil bulunamadı.")
+
+def wx_wy_flatbar(b_mm, h_mm):
+    """Lama (Flat Bar) dikdörtgen kesit Wx – Wy hesabı"""
+    b = b_mm / 1000.0
+    h = h_mm / 1000.0
+
+    Ix = b * h**3 / 12.0
+    Iy = h * b**3 / 12.0
+
+    Wx = Ix / (h / 2.0)
+    Wy = Iy / (b / 2.0)
+
+    return Wx * 1e9, Wy * 1e9
 
 
 # ---------------------------------------------------------
