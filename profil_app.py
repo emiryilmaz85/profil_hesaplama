@@ -266,25 +266,26 @@ def muadil_liste_10yuzde(Wx_target, Wy_target):
 # ---------------------------------------------------------
 def lama_muadil_wx_wy(Wx_target, Wy_target, h_mm):
     """Verilen Wx, Wy hedeflerine göre sabit h_mm yükseklikte
-    hangi lama kalınlıkları (%10 toleransla) muadil olabilir?"""
+    hangi lama kalınlıkları (%10 toleransla) muadil olabilir?
+    NOT: Burada şart 'VE' değil, 'VEYA' olarak alınır.
+    Yani Wx veya Wy'den biri %10 bandında ise muadil olarak kabul edilir."""
     if Wx_target is None or Wy_target is None or h_mm is None:
         return []
 
     liste = []
-    # 2 mm ile 100 mm arası tüm kalınlıkları tarayalım
-    for t in range(2, 101):  # 2,3,...,100 mm
+    for t in range(2, 101):  # 2..100 mm kalınlık taraması
         Wx_l, Wy_l = wx_wy_flatbar(t, h_mm)
         if Wx_l is None or Wy_l is None:
             continue
 
-        # %10 tolerans kontrolü
         if Wx_target <= 0 or Wy_target <= 0:
             continue
 
         cond_wx = abs(Wx_l - Wx_target) <= 0.10 * Wx_target
         cond_wy = abs(Wy_l - Wy_target) <= 0.10 * Wy_target
 
-        if cond_wx and cond_wy:
+        # ÖNEMLİ: VE değil, VEYA
+        if cond_wx or cond_wy:
             dWx = abs(Wx_l - Wx_target)
             dWy = abs(Wy_l - Wy_target)
             skor = dWx + dWy
