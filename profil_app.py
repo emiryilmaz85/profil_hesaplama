@@ -154,6 +154,7 @@ def wx_wy_bulb(row):
 
 
 def wx_wy_flatbar(b_mm, h_mm):
+    """Dikdörtgen lama için Wx, Wy (mm³). b=kalınlık, h=yükseklik."""
     b = b_mm / 1000.0
     h = h_mm / 1000.0
     Ix = b * h ** 3 / 12.0
@@ -183,12 +184,12 @@ def build_all_profiles_wx_wy():
     for r in L_EQUAL_TABLO:
         Wx, Wy = wx_wy_L(r)
         if Wx:
-            lst.append({"Profil": r["profil"], "Tip": "L eşit", "Wx_mm3": Wx, "Wy_mm3": Wy})
+            lst.append({"Profil": r["profil"], "Tip": "L eşit", "Wx_mm3": Wx, "Wy_mm3": Wy})
 
     for r in L_UNEQUAL_TABLO:
         Wx, Wy = wx_wy_L(r)
         if Wx:
-            lst.append({"Profil": r["profil"], "Tip": "L eşit olmayan", "Wx_mm3": Wx, "Wy_mm3": Wy})
+            lst.append({"Profil": r["profil"], "Tip": "L eşit olmayan", "Wx_mm3": Wx, "Wy_mm3": Wy})
 
     for r in IPE_TABLO:
         Wx, Wy = wx_wy_ipe(r)
@@ -261,28 +262,44 @@ def muadil_liste_10yuzde(Wx_target, Wy_target):
 
 
 # ---------------------------------------------------------
-# TUM PROFILLER ICIN MUADIL LAMA HESABI (A SECENEGI)
+# TUM PROFILLER ICIN MUADIL LAMA (WX/WY HEDEFINE GORE)
 # ---------------------------------------------------------
-def lama_muadil_hesap(high_mm, thick_mm):
-    """Profilin karakteristik yüksekliği (high_mm) ve kalınlığı (thick_mm)
-    icin %10 toleransla muadil lama (flat bar) kalinliklarini hesaplar."""
-    if high_mm is None or thick_mm is None:
+def lama_muadil_wx_wy(Wx_target, Wy_target, h_mm):
+    """Verilen Wx, Wy hedeflerine göre sabit h_mm yükseklikte
+    hangi lama kalınlıkları (%10 toleransla) muadil olabilir?"""
+    if Wx_target is None or Wy_target is None or h_mm is None:
         return []
 
-    t_min = thick_mm * 0.9
-    t_max = thick_mm * 1.1
-
-    standart_t = [3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25]
-
     liste = []
-    for t in standart_t:
-        if t_min <= t <= t_max:
+    # 2 mm ile 100 mm arası tüm kalınlıkları tarayalım
+    for t in range(2, 101):  # 2,3,...,100 mm
+        Wx_l, Wy_l = wx_wy_flatbar(t, h_mm)
+        if Wx_l is None or Wy_l is None:
+            continue
+
+        # %10 tolerans kontrolü
+        if Wx_target <= 0 or Wy_target <= 0:
+            continue
+
+        cond_wx = abs(Wx_l - Wx_target) <= 0.10 * Wx_target
+        cond_wy = abs(Wy_l - Wy_target) <= 0.10 * Wy_target
+
+        if cond_wx and cond_wy:
+            dWx = abs(Wx_l - Wx_target)
+            dWy = abs(Wy_l - Wy_target)
+            skor = dWx + dWy
             liste.append({
-                "Profil": "{} x {}".format(high_mm, t),
-                "h (mm)": high_mm,
+                "Lama": "{} x {}".format(h_mm, t),
+                "h (mm)": h_mm,
                 "t (mm)": t,
-                "Tip": "Lama (Flat Bar)"
+                "Wx_lama (mm³)": Wx_l,
+                "Wy_lama (mm³)": Wy_l,
+                "ΔWx": dWx,
+                "ΔWy": dWy,
+                "Toplam Skor": skor
             })
+
+    liste.sort(key=lambda x: x["Toplam Skor"])
     return liste
 
 
@@ -291,7 +308,7 @@ def lama_muadil_hesap(high_mm, thick_mm):
 # ---------------------------------------------------------
 st.set_page_config(page_title="Profil Hesaplama", layout="wide")
 
-st.title("🔧 Profil Hesaplama Sistemi — Muadil %10 + Lama Muadil (Flat Bar)")
+st.title("🔧 Profil Hesaplama Sistemi — Wx/Wy Muadil + Lama Muadil")
 
 
 col1, col2 = st.columns([3, 1])
@@ -324,7 +341,7 @@ with col1:
 
     Wx_sec = None
     Wy_sec = None
-    lama_list = []
+    lama_list = []  # muadil lamalar
 
     # ----------------------
     # BORU
@@ -354,12 +371,12 @@ with col1:
                 A = (math.pi / 4.0) * (OD_m ** 2 - ID_m ** 2)
 
                 w = agirlik_hesap(A, L_m, rho)
-
                 st.markdown("Kesit alanı: **{:.2f} mm²**".format(A * 1e6))
                 st.success("Toplam ağırlık: **{:.2f} kg**".format(w))
 
                 Wx_sec, Wy_sec = wx_wy_boru(s)
-                lama_list = lama_muadil_hesap(OD, t)
+                h_lama = OD
+                lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # RHS / SHS
@@ -392,7 +409,8 @@ with col1:
             st.success("Toplam ağırlık: **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_rhs(g)
-            lama_list = lama_muadil_hesap(A_mm, t_mm)
+            h_lama = max(A_mm, B_mm)
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # L EŞIT
@@ -422,7 +440,8 @@ with col1:
             st.success("Toplam ağırlık (yakl.): **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_L(g)
-            lama_list = lama_muadil_hesap(a_mm, t_mm)
+            h_lama = max(a_mm, b_mm)
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # L ESIT OLMAYAN
@@ -452,7 +471,8 @@ with col1:
             st.success("Toplam ağırlık (yakl.): **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_L(g)
-            lama_list = lama_muadil_hesap(a_mm, t_mm)
+            h_lama = max(a_mm, b_mm)
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # UPN
@@ -488,7 +508,8 @@ with col1:
             st.success("Toplam ağırlık (yakl.): **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_upn(g)
-            lama_list = lama_muadil_hesap(h_mm, tw_mm)
+            h_lama = h_mm
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # IPE
@@ -524,7 +545,8 @@ with col1:
             st.success("Toplam ağırlık (yakl.): **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_ipe(g)
-            lama_list = lama_muadil_hesap(h_mm, tw_mm)
+            h_lama = h_mm
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # HEA
@@ -560,7 +582,8 @@ with col1:
             st.success("Toplam ağırlık (yakl.): **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_hea(g)
-            lama_list = lama_muadil_hesap(h_mm, tw_mm)
+            h_lama = h_mm
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # HEB
@@ -596,7 +619,8 @@ with col1:
             st.success("Toplam ağırlık (yakl.): **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_heb(g)
-            lama_list = lama_muadil_hesap(h_mm, tw_mm)
+            h_lama = h_mm
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # YUVARLAK DOLU
@@ -620,11 +644,8 @@ with col1:
             st.success("Toplam ağırlık: **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_round(g)
-
-            # Eşdeğer lama kalınlığı: A / h ~ A / d
-            A_mm2 = A * 1e6
-            t_eq = A_mm2 / d_mm
-            lama_list = lama_muadil_hesap(d_mm, t_eq)
+            h_lama = d_mm
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # KARE DOLU
@@ -648,10 +669,8 @@ with col1:
             st.success("Toplam ağırlık: **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_square(g)
-
-            A_mm2 = A * 1e6
-            t_eq = A_mm2 / a_mm
-            lama_list = lama_muadil_hesap(a_mm, t_eq)
+            h_lama = a_mm
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # BULB FLAT
@@ -679,7 +698,8 @@ with col1:
             st.success("Toplam ağırlık (yakl.): **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_bulb(g)
-            lama_list = lama_muadil_hesap(B_mm, t_mm)
+            h_lama = B_mm
+            lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, h_lama)
 
     # ----------------------
     # LAMA (FLAT BAR) MANUEL
@@ -700,7 +720,7 @@ with col1:
             st.success("Toplam ağırlık: **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_flatbar(t_mm, h_mm)
-            # Lama kendi muadili zaten lama oldugu icin ek muadil liste gerekmiyor
+            # Lama için ekstra lama muadili üretmiyoruz
 
 
     # ----------------------
@@ -730,18 +750,17 @@ with col1:
         st.markdown("---")
         st.subheader("🟫 Bu profile muadil Lama (Flat Bar) boyutları")
         st.dataframe(lama_list, use_container_width=True)
+    elif Wx_sec is not None and Wy_sec is not None:
+        st.markdown("---")
+        st.info("Bu profil için %10 Wx/Wy toleransı içinde muadil lama kalınlığı bulunamadı. "
+                "Profil çok asimetrik olabilir veya tolerans aralığını dar/sıkı tutuyoruz.")
 
 
 # ---------------------------------------------------------
 # SAG SUTUN — TEKNIK CIZIM GORSELI
 # ---------------------------------------------------------
 with col2:
-    img_path = None
-    try:
-        img_path = get_image_for_type(profil_tipi)
-    except Exception:
-        img_path = None
-
+    img_path = get_image_for_type(profil_tipi)
     if img_path:
         st.image(img_path, caption="Teknik Çizim Seti", use_column_width=True)
         st.markdown(
