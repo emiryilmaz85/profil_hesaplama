@@ -305,28 +305,33 @@ def lama_muadil_wx_wy(Wx_target, Wy_target, h_mm):
 # ---------------------------------------------------------
 # T PROFIL MUADIL (WX/WY HEDEFINE GORE)
 # ---------------------------------------------------------
-def t_profil_wx_wy(Wx_target, Wy_target, H_mm):
+def t_profil_wx_wy(Wx_target, Wy_target, H_mm, t_min_mm, t_max_mm):
     """
     H_mm toplam yüksekliğe sahip T profil için
     flanş + gövde kombinasyonlarını tarar.
     Flanş: b_f x t_f
     Gövde: h_w x t_w  (H = t_f + h_w)
     Wx/Wy hedefe %10 içinde olanları listeler.
+    t_min_mm ve t_max_mm: flanş ve gövde kalınlığı için min/max (mm)
     """
     if Wx_target is None or Wy_target is None or H_mm is None:
+        return []
+    if t_min_mm is None or t_max_mm is None or t_min_mm <= 0 or t_max_mm < t_min_mm:
         return []
 
     H = float(H_mm)
     if H <= 0:
         return []
 
-    # Flanş kalınlığı ve gövde kalınlığı için makul değer aralığı
-    t_list = [4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30]
+    # Kalınlık adayları (tipik sac/lamalar) – 4-30 mm
+    base_t_candidates = [4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30]
+    t_list = [t for t in base_t_candidates if t_min_mm <= t <= t_max_mm]
+    if not t_list:
+        return []
 
     # Flanş genişliği: H'nin yaklaşık 0.5x ile 2x arası, 10 mm adım
     b_min = max(20.0, 0.5 * H)
     b_max = 2.0 * H
-    # 10 mm adım ile yuvarla
     b_start = int(round(b_min / 10.0) * 10)
     b_end = int(round(b_max / 10.0) * 10)
 
@@ -343,12 +348,10 @@ def t_profil_wx_wy(Wx_target, Wy_target, H_mm):
 
             for b_f in range(b_start, b_end + 1, 10):
                 # T kesit geometrisi
-                # Flanş dikdörtgeni
-                A_f = b_f * t_f
-                # Gövde dikdörtgeni
-                A_w = t_w * h_w
+                A_f = b_f * t_f         # flanş alanı
+                A_w = t_w * h_w         # gövde alanı
 
-                # Flanş ve gövde ağırlık merkezi (y)
+                # Flanş ve gövde ağırlık merkezleri (y)
                 y_f = h_w + t_f / 2.0
                 y_w = h_w / 2.0
 
@@ -358,13 +361,12 @@ def t_profil_wx_wy(Wx_target, Wy_target, H_mm):
 
                 y_bar = (A_f * y_f + A_w * y_w) / A_toplam
 
-                # Ix: x eksenine göre (yukarı-aşağı)
+                # Ix: x eksenine göre
                 Ix_f = b_f * t_f ** 3 / 12.0
                 Ix_w = t_w * h_w ** 3 / 12.0
-
                 Ix = Ix_f + A_f * (y_f - y_bar) ** 2 + Ix_w + A_w * (y_w - y_bar) ** 2
 
-                # Iy: y eksenine göre (sol-sağ), flanş genişliği kritik
+                # Iy: y eksenine göre
                 Iy_f = t_f * b_f ** 3 / 12.0
                 Iy_w = h_w * t_w ** 3 / 12.0
                 Iy = Iy_f + Iy_w
@@ -373,8 +375,7 @@ def t_profil_wx_wy(Wx_target, Wy_target, H_mm):
                 c_top = H - y_bar
                 c_bot = y_bar
                 c_x = max(c_top, c_bot)  # Wx için
-
-                c_y = b_f / 2.0          # Wy için (flanş eni baskın)
+                c_y = b_f / 2.0          # Wy için
 
                 # Birimler: mm^4 -> m^4, sonra Wx,Wy -> mm^3
                 Ix_m4 = Ix * 1e-12
@@ -386,11 +387,10 @@ def t_profil_wx_wy(Wx_target, Wy_target, H_mm):
                 Wx_mm3 = Wx_m3 * 1e9
                 Wy_mm3 = Wy_m3 * 1e9
 
-                # %10 tolerans
+                # %10 tolerans (VEYA)
                 cond_wx = abs(Wx_mm3 - Wx_t) <= 0.10 * Wx_t if Wx_t > 0 else False
                 cond_wy = abs(Wy_mm3 - Wy_t) <= 0.10 * Wy_t if Wy_t > 0 else False
 
-                # Burada da VEYA mantığı kullanıyoruz
                 if not (cond_wx or cond_wy):
                     continue
 
@@ -490,8 +490,13 @@ with col1:
 
                 Wx_sec, Wy_sec = wx_wy_boru(s)
                 H_max = OD
+
+                # Kalınlık aralığı: t .. 2t
+                t_min = t
+                t_max = 2 * t
+
                 lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-                t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+                t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # RHS / SHS
@@ -525,8 +530,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_rhs(g)
             H_max = max(A_mm, B_mm)
+
+            # Kalınlık aralığı: t .. 2t
+            t_min = t_mm
+            t_max = 2 * t_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # L EŞIT
@@ -557,8 +567,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_L(g)
             H_max = max(a_mm, b_mm)
+
+            # Kalınlık aralığı: t .. 2t
+            t_min = t_mm
+            t_max = 2 * t_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # L ESIT OLMAYAN
@@ -589,8 +604,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_L(g)
             H_max = max(a_mm, b_mm)
+
+            # Kalınlık aralığı: t .. 2t
+            t_min = t_mm
+            t_max = 2 * t_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # UPN
@@ -627,8 +647,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_upn(g)
             H_max = h_mm
+
+            # Kalınlık aralığı: tw .. 2*tw
+            t_min = tw_mm
+            t_max = 2 * tw_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # IPE
@@ -665,8 +690,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_ipe(g)
             H_max = h_mm
+
+            # Kalınlık aralığı: tw .. 2*tw
+            t_min = tw_mm
+            t_max = 2 * tw_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # HEA
@@ -703,8 +733,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_hea(g)
             H_max = h_mm
+
+            # Kalınlık aralığı: tw .. 2*tw
+            t_min = tw_mm
+            t_max = 2 * tw_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # HEB
@@ -741,8 +776,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_heb(g)
             H_max = h_mm
+
+            # Kalınlık aralığı: tw .. 2*tw
+            t_min = tw_mm
+            t_max = 2 * tw_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # YUVARLAK DOLU
@@ -767,8 +807,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_round(g)
             H_max = d_mm
+
+            # Yuvarlak dolu için sabit kalınlık aralığı: 4–10 mm
+            t_min = 4.0
+            t_max = 10.0
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # KARE DOLU
@@ -793,8 +838,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_square(g)
             H_max = a_mm
+
+            # Emir'in istediği gibi: kare doluda T kalınlık aralığı 4–10 mm
+            t_min = 4.0
+            t_max = 10.0
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # BULB FLAT
@@ -823,8 +873,13 @@ with col1:
 
             Wx_sec, Wy_sec = wx_wy_bulb(g)
             H_max = B_mm
+
+            # Kalınlık aralığı: t .. 2t
+            t_min = t_mm
+            t_max = 2 * t_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
     # ----------------------
     # LAMA (FLAT BAR) MANUEL
@@ -845,10 +900,14 @@ with col1:
             st.success("Toplam ağırlık: **{:.2f} kg**".format(w))
 
             Wx_sec, Wy_sec = wx_wy_flatbar(t_mm, h_mm)
-            # Lama için muadil lama araması yaparsak aslında kendisiyle eşdeğer çıkar.
             H_max = h_mm
+
+            # Kalınlık aralığı: t .. 2t
+            t_min = t_mm
+            t_max = 2 * t_mm
+
             lama_list = lama_muadil_wx_wy(Wx_sec, Wy_sec, H_max)
-            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max)
+            t_list = t_profil_wx_wy(Wx_sec, Wy_sec, H_max, t_min, t_max)
 
 
     # ----------------------
@@ -889,7 +948,7 @@ with col1:
     elif Wx_sec is not None and Wy_sec is not None:
         st.markdown("---")
         st.info("Bu profil için %10 Wx/Wy toleransı içinde muadil T profil bulunamadı. "
-                "Arama aralığını genişletmek için kodda t_list veya b_f aralıklarını büyütebilirsin.")
+                "Arama aralığını genişletmek için kalınlık aralıklarının mantığını koddan güncelleyebilirsin.")
 
 
 # ---------------------------------------------------------
