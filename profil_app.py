@@ -265,7 +265,7 @@ with col1:
 
     MALZEMELER = {"Çelik": 7.85, "Paslanmaz Çelik": 7.90, "Alüminyum": 2.70}
 
-    profil_tipi = st.selectbox("Profil Tipi:", [
+profil_tipi = st.selectbox("Profil Tipi:", [
         "Boru",
         "Kutu Profil (RHS/SHS)",
         "Köşebent (L Eşit)",
@@ -276,9 +276,10 @@ with col1:
         "H Profil (HEB)",
         "Yuvarlak Dolu",
         "Kare Dolu",
-        "Hollanda Profili (Bulb Flat)"
+        "Hollanda Profili (Bulb Flat)",
         "Lama (Flat Bar)"
-    ])
+])
+
 
     malzeme = st.selectbox("Malzeme:", list(MALZEMELER.keys()))
     rho = MALZEMELER[malzeme]
