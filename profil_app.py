@@ -280,8 +280,8 @@ def lama_muadil_wx_wy(Wx_target, Wy_target, h_mm):
         if Wx_target <= 0 or Wy_target <= 0:
             continue
 
-        cond_wx = abs(Wx_l - Wx_target) <= 0.10 * Wx_target
-        cond_wy = abs(Wy_l - Wy_target) <= 0.10 * Wy_target
+        cond_wx = abs(Wx_l - Wx_target) <= 0.02 * Wx_target
+        cond_wy = abs(Wy_l - Wy_target) <= 0.02 * Wy_target
 
         if cond_wx or cond_wy:
             dWx = abs(Wx_l - Wx_target)
