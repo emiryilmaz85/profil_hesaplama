@@ -1,3 +1,4 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/profil_app.py b/profil_app.py
 index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa7fcc5820 100644
 --- a/profil_app.py
@@ -333,3 +334,6 @@ index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa
              "<small>Seçtiğiniz profil için referans teknik ölçü şemaları (genel set).</small>",
              unsafe_allow_html=True
          )
+ 
+EOF
+)
