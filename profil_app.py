@@ -1,10 +1,10 @@
  (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
 diff --git a/profil_app.py b/profil_app.py
-index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa7fcc5820 100644
+index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..f7d2ce299fbdabb1e1c53cbea1845d461fc9288f 100644
 --- a/profil_app.py
 +++ b/profil_app.py
 @@ -1,46 +1,50 @@
- 
+-
  # -*- coding: utf-8 -*-
  import streamlit as st
  import math
@@ -28,6 +28,7 @@ index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa
 +# Tolerans oranı: ±%2 (Wx/Wy muadil aramalarında kullanılır)
 +TOLERANS_ORAN = 0.02
 +TOLERANS_YUZDE = int(TOLERANS_ORAN * 100)
++TOLERANS_METIN = f"±{TOLERANS_YUZDE}%"
 +
  
  # ---------------------------------------------------------
@@ -125,8 +126,8 @@ index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa
 -    hangi lama kalınlıkları (%10 toleransla) muadil olabilir?
 -    Burada şart Wx veya Wy'den en az biri %10 bandında olsun (VEYA)."""
 +    f"""Verilen Wx, Wy hedeflerine göre sabit h_mm yükseklikte
-+    hangi lama kalınlıkları (%{TOLERANS_YUZDE} toleransla) muadil olabilir?
-+    Burada şart Wx veya Wy'den en az biri %{TOLERANS_YUZDE} bandında olsun (VEYA)."""
++    hangi lama kalınlıkları ({TOLERANS_METIN} toleransla) muadil olabilir?
++    Burada şart Wx veya Wy'den en az biri {TOLERANS_METIN} bandında olsun (VEYA)."""
      if Wx_target is None or Wy_target is None or h_mm is None:
          return []
  
@@ -229,7 +230,7 @@ index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa
 -                # %10 tolerans (VEYA)
 -                cond_wx = abs(Wx_mm3 - Wx_t) <= 0.10 * Wx_t if Wx_t > 0 else False
 -                cond_wy = abs(Wy_mm3 - Wy_t) <= 0.10 * Wy_t if Wy_t > 0 else False
-+                # %2 tolerans (VEYA)
++                # ±2% tolerans (VEYA)
 +                cond_wx = abs(Wx_mm3 - Wx_t) <= TOLERANS_ORAN * Wx_t if Wx_t > 0 else False
 +                cond_wy = abs(Wy_mm3 - Wy_t) <= TOLERANS_ORAN * Wy_t if Wy_t > 0 else False
  
@@ -284,7 +285,7 @@ index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa
      if Wx_sec is not None and Wy_sec is not None:
          st.markdown("---")
 -        st.subheader("📊 %10 Toleranslı Muadil Kesit Modülü Profilleri")
-+        st.subheader(f"📊 %{TOLERANS_YUZDE} Toleranslı Muadil Kesit Modülü Profilleri")
++        st.subheader(f"📊 {TOLERANS_METIN} Toleranslı Muadil Kesit Modülü Profilleri")
  
          st.markdown(
              "Seçilen profil için yakl. kesit modülleri:<br>"
@@ -299,7 +300,7 @@ index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa
              st.dataframe(muadiller, use_container_width=True)
          else:
 -            st.info("%10 tolerans içinde muadil profil bulunamadı. Tablolara daha fazla profil ekleyebilirsin.")
-+            st.info(f"%{TOLERANS_YUZDE} tolerans içinde muadil profil bulunamadı. Tablolara daha fazla profil ekleyebilirsin.")
++            st.info(f"{TOLERANS_METIN} tolerans içinde muadil profil bulunamadı. Tablolara daha fazla profil ekleyebilirsin.")
  
      # ----------------------
      # LAMA MUADIL LISTESI
@@ -319,7 +320,7 @@ index 282d77abcfaff8cfcfde2ee23d76eabe080ced81..b79a4a13cc2063867b05d0a41f8ffdfa
      elif Wx_sec is not None and Wy_sec is not None:
          st.markdown("---")
 -        st.info("Bu profil için %10 Wx/Wy toleransı içinde muadil T profil bulunamadı. "
-+        st.info(f"Bu profil için %{TOLERANS_YUZDE} Wx/Wy toleransı içinde muadil T profil bulunamadı. "
++        st.info(f"Bu profil için {TOLERANS_METIN} Wx/Wy toleransı içinde muadil T profil bulunamadı. "
                  "Arama aralığını genişletmek için kalınlık aralıklarının mantığını koddan güncelleyebilirsin.")
  
  
